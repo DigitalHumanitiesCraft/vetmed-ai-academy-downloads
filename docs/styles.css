@@ -1,0 +1,41 @@
+@layer reset, tokens, base, layout, components;
+@layer reset {
+  *, *::before, *::after { box-sizing: border-box; }
+  body, h1, h2, p { margin: 0; }
+}
+@layer tokens {
+  :root {
+    color-scheme: light;
+    --paper: oklch(100% 0 0);
+    --ink: oklch(25% 0.01 250);
+    --muted: oklch(46% 0.015 250);
+    --action: oklch(0% 0 0);
+    --on-action: oklch(100% 0 0);
+    --focus: oklch(47% 0.16 250);
+    --line: oklch(86% 0.005 250);
+    --space: clamp(1rem, 0.9rem + 0.5vw, 1.4rem);
+  }
+}
+@layer base {
+  html { font-family: system-ui, sans-serif; font-size: 100%; }
+  body { color: var(--ink); background: var(--paper); line-height: 1.6; }
+  h1 { font-size: clamp(1.8rem, 1.3rem + 2vw, 2.8rem); line-height: 1.2; }
+  h2 { font-size: 1.2rem; line-height: 1.4; }
+  a { color: inherit; text-underline-offset: 0.18em; }
+  a:focus-visible { outline: 3px solid var(--focus); outline-offset: 5px; }
+  code { font-size: 0.95em; overflow-wrap: anywhere; }
+  li + li { margin-block-start: 0.5rem; }
+}
+@layer layout {
+  body { max-inline-size: 47rem; margin-inline: auto; padding: clamp(1.25rem, 0.5rem + 4vw, 3rem); }
+  main > * + * { margin-block-start: var(--space); }
+  main > h2 { margin-block-start: calc(var(--space) * 1.6); }
+  ol { padding-inline-start: 1.4rem; }
+  footer { margin-block-start: calc(var(--space) * 2); padding-block-start: var(--space); border-block-start: 1px solid var(--line); }
+}
+@layer components {
+  .download a { display: inline-block; padding: 0.85rem 1.1rem; background: var(--action); color: var(--on-action); text-decoration: none; font-weight: 650; max-inline-size: 100%; }
+  .download a:hover, .download a:focus-visible { text-decoration: underline; }
+  .download span { white-space: nowrap; }
+  .edition, .note, footer { color: var(--muted); font-size: 0.95rem; }
+}
