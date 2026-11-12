@@ -1,0 +1,112 @@
+{
+  "id": "safe-handling-basics",
+  "title": "Sicherer Umgang beim Annähern, Führen und Wenden",
+  "status": "unreviewed",
+  "origin": "source-derived",
+  "units": {
+    "duration": "s",
+    "position": "scene unit",
+    "heading": "degree",
+    "neck": "degree"
+  },
+  "sources": {
+    "svs": {"label": "SVS-Merkblatt Pferdehaltung", "url": "https://www.svs.at/cdscontent/load?contentid=10008.740774&version=1606289413"},
+    "psu": {"label": "Penn State Extension", "url": "https://extension.psu.edu/safe-horse-handling"},
+    "ext": {"label": "Extension Horses", "url": "https://horses.extension.org/safe-ground-handling/"}
+  },
+  "initial": {
+    "horse": {"x": 0, "z": 0, "heading": 0, "neck": 0},
+    "person": {"x": 4.5, "z": -3.2, "heading": -150}
+  },
+  "steps": [
+    {
+      "id": "blind-spots",
+      "label": "Tote Winkel direkt vor und hinter dem Pferd kennen",
+      "why": "Pferde sehen weit zur Seite, aber nicht direkt vor und hinter sich. Wer dort auftaucht, kann das Pferd erschrecken.",
+      "passages": [
+        {"source": "psu", "locator": "Where to Stand"},
+        {"source": "ext", "locator": "Basic Horse Behavior"}
+      ],
+      "focus": ["blind-front", "blind-rear"],
+      "duration": 4
+    },
+    {
+      "id": "kick-zone",
+      "label": "Nie von hinten an das Pferd herangehen",
+      "why": "Hinter dem Pferd liegt der Schlagbereich. Ein überraschtes Pferd kann ausschlagen, und wenige Schritte dahinter trifft der Tritt mit voller Wucht.",
+      "passages": [
+        {"source": "ext", "locator": "Basic Horse Behavior"},
+        {"source": "ext", "locator": "Grooming the horse"},
+        {"source": "psu", "locator": "Approaching"},
+        {"source": "svs", "locator": "S. 2, Ausbildung und Erfahrung"}
+      ],
+      "focus": ["kick"],
+      "duration": 4
+    },
+    {
+      "id": "approach",
+      "label": "Schräg von vorn zur linken Schulter gehen und das Pferd ansprechen",
+      "why": "So sieht und hört das Pferd die Person kommen, bevor sie es erreicht.",
+      "cue": "spricht das Pferd an",
+      "passages": [
+        {"source": "psu", "locator": "Approaching"},
+        {"source": "ext", "locator": "Approaching the Horse"},
+        {"source": "svs", "locator": "S. 2, Ausbildung und Erfahrung"}
+      ],
+      "focus": ["shoulder"],
+      "duration": 5,
+      "person": {"x": 0.6, "z": -1, "heading": -90}
+    },
+    {
+      "id": "stand",
+      "label": "Seitlich an der Schulter stehen, nicht vor dem Pferd",
+      "why": "Neben dem Körper steht man am sichersten. Vor und hinter dem Pferd liegen die toten Winkel.",
+      "passages": [
+        {"source": "psu", "locator": "Where to Stand"},
+        {"source": "svs", "locator": "S. 3, Grundregeln für die Pflege"}
+      ],
+      "focus": ["shoulder", "blind-front"],
+      "duration": 4
+    },
+    {
+      "id": "lead-rope",
+      "label": "Führstrick nahe am Halfter halten, nie um die Hand wickeln",
+      "why": "Erschrickt das Pferd und läuft davon, muss die Person loslassen können. Ein gewickelter Strick reißt sie mit.",
+      "passages": [
+        {"source": "svs", "locator": "S. 3, Das Führen von Pferden"},
+        {"source": "psu", "locator": "Leading"},
+        {"source": "ext", "locator": "Leading the Horse"}
+      ],
+      "rope": true,
+      "duration": 4,
+      "person": {"x": 0.9, "z": -0.95, "heading": 0}
+    },
+    {
+      "id": "lead",
+      "label": "Links auf Schulterhöhe neben dem Pferd führen",
+      "why": "Von dort bemerkt die Person früh, wenn das Pferd ausweicht, und geht nicht vor ihm.",
+      "passages": [
+        {"source": "ext", "locator": "Leading the Horse"},
+        {"source": "psu", "locator": "Where to Stand"},
+        {"source": "svs", "locator": "S. 3, Das Führen von Pferden"}
+      ],
+      "focus": ["shoulder"],
+      "duration": 5,
+      "horse": {"x": 3},
+      "person": {"x": 3.9}
+    },
+    {
+      "id": "turn",
+      "label": "Beim Wenden das Pferd von sich weg drehen",
+      "why": "Die Person bleibt außen. Zieht sie das Pferd zu sich herum, kann es ihr auf die Füße treten.",
+      "passages": [
+        {"source": "ext", "locator": "Leading the Horse"},
+        {"source": "psu", "locator": "Leading"},
+        {"source": "svs", "locator": "S. 3, Das Führen von Pferden"}
+      ],
+      "duration": 5,
+      "horse": {"x": 4, "z": 1, "heading": -90},
+      "person": {"x": 4.95, "z": 1.9, "heading": -90}
+    }
+  ]
+}

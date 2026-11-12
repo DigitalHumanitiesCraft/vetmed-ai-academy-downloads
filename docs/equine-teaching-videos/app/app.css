@@ -1,0 +1,295 @@
+@layer tokens {
+  :root {
+    /* The scene is the working object; the page runs a little wider than the shared default. */
+    --page-max: 88rem;
+    /* The person is a data mark of its own, darker than the horse and never the accent. */
+    --c-person: oklch(30% 0.03 250);
+    /* Hooves, mane and tail: a darker shade of the horse's data grey. */
+    --c-horse-dark: oklch(38% 0.02 250);
+    /* The horse where a step began: its grey faded towards the ground. */
+    --c-horse-ghost: color-mix(in oklab, var(--c-data) 22%, var(--c-surface));
+    /* The person where a step began, faded the same way. */
+    --c-person-ghost: color-mix(in oklab, var(--c-person) 34%, var(--c-surface));
+  }
+}
+
+@layer layout {
+  /* Narrow reading order is the document order: scene, step bar with playback, then the current
+     rule with its reason and sources. Wide: the list of all rules stands beside the scene. */
+  .detail { display: grid; gap: var(--space-3) var(--space-5); align-items: start; }
+  .detail > * { min-inline-size: 0; }
+  @media (min-width: 64rem) {
+    .detail {
+      grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+      grid-template-areas: "frame rules" "transport rules";
+      grid-template-rows: auto 1fr;
+    }
+    .scene-frame { grid-area: frame; }
+    .transport { grid-area: transport; }
+    .rules { grid-area: rules; }
+  }
+}
+
+@layer case {
+  /* One line for the lesson: its title, the review state once, and on the overview the primary action. */
+  .lesson-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-4); }
+  .lesson-head h2 { font-size: var(--step-1); line-height: var(--leading-snug); }
+  .lesson-head .button { margin-inline-start: auto; gap: var(--space-2); }
+  .lesson-head [hidden] { display: none; }
+  @media (max-width: 39.99rem) {
+    .lesson-head h2 { font-size: var(--step-0); }
+  }
+
+  /* The review state of the lesson: open, in muted grey, once per view. */
+  .review-state { display: inline-flex; align-items: center; gap: 0.35em; color: var(--c-text-muted); font-size: var(--step--1); }
+
+  /* Overview: one tile per step, the top view of where it ends above its number and rule.
+     A phone shows one row per step, the picture beside the rule. */
+  .step-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .step-tiles li { max-inline-size: none; }
+  .tile {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-2);
+    align-items: baseline;
+    block-size: 100%;
+    color: var(--c-text);
+    text-decoration: none;
+  }
+  .tile-scene {
+    grid-column: 1 / -1;
+    inline-size: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: var(--radius-lg);
+    background: var(--c-surface);
+  }
+  .tile-number { padding-inline-start: var(--space-1); color: var(--c-text-muted); font-variant-numeric: tabular-nums; }
+  /* The rule is the tile's link name: underlined on hover and focus only (.link-text). */
+  .tile-rule { color: var(--c-accent); line-height: var(--leading-snug); hyphens: auto; overflow-wrap: break-word; }
+  @media (max-width: 39.99rem) {
+    .step-tiles { gap: var(--space-2); }
+    .tile { grid-template-columns: 7rem auto 1fr; align-items: center; }
+    .tile-scene { grid-column: 1; }
+    .tile-rule { font-size: var(--step--1); }
+  }
+
+  .lesson-nav p { margin: 0; }
+  .lesson-nav[hidden] { display: none; }
+  #lesson-nav-title { color: var(--c-text-muted); }
+
+  /* The scene frame is the medium: its grey ground sets it apart from the white page without a border or shadow. */
+  .scene-frame {
+    position: relative;
+    display: grid;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--c-surface);
+  }
+  .scene-frame canvas {
+    inline-size: 100%;
+    block-size: auto;
+    /* Square on phones, so the step keeps room between the controls at the top and bottom. */
+    aspect-ratio: 1;
+    max-block-size: 70vh;
+  }
+  @media (min-width: 40rem) {
+    .scene-frame canvas { aspect-ratio: 16 / 9; }
+  }
+
+  /* Leader lines from each label to what it names, drawn under the labels. */
+  .leaders { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; overflow: visible; pointer-events: none; }
+  .leader { stroke: var(--c-text-muted); stroke-width: 1.25; }
+  .leader-end { fill: var(--c-text-muted); }
+  .leader.tone-warn { stroke: var(--c-warn); }
+  .leader-end.tone-warn { fill: var(--c-warn); }
+  .leader.tone-safe { stroke: var(--c-ok); }
+  .leader-end.tone-safe { fill: var(--c-ok); }
+
+  /* Positioned by main.js beside the person, or below a zone's anchor point. */
+  .scene-label {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    padding: 0.05em 0.5em;
+    border-radius: var(--radius);
+    background: color-mix(in oklab, var(--c-bg) 88%, transparent);
+    color: var(--c-text);
+    font-size: var(--step--1);
+    line-height: 1.4;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  /* The place may wrap, so the label fits the narrow space beside a person standing at the horse. */
+  .person-label { flex-direction: column; align-items: center; gap: 0; max-inline-size: 9rem; line-height: 1.3; padding-block: 0.2em; white-space: normal; text-align: center; }
+  .person-line { display: inline-flex; align-items: center; gap: 0.3em; }
+  .person-name { font-weight: 600; }
+  #person-mark:empty { display: none; }
+  #person-mark .icon { inline-size: 1.1em; block-size: 1.1em; }
+  /* A state symbol brings its colour: circle-check green, alert-triangle amber. */
+  .person-label[data-tone="safe"] #person-mark { color: var(--c-ok); }
+  .person-label[data-tone="warn"] #person-mark { color: var(--c-warn); }
+  #person-cue { color: var(--c-text-muted); font-style: italic; }
+  /* On a phone the label names the person only, on one line with its state symbol, so the small scene does not crowd;
+     the symbol keeps the verdict of the counter-check, and the place and the cue are named from tablet width. */
+  @media (max-width: 39.99rem) {
+    .person-label { white-space: nowrap; }
+    :is(#person-zone, #person-cue) { display: none; }
+  }
+  /* Names of the zones the step points to, in the zone's own colour. */
+  .zone-label { background: color-mix(in oklab, var(--c-bg) 75%, transparent); font-weight: 600; }
+  .zone-label.tone-warn { color: var(--c-warn); }
+  .zone-label.tone-safe { color: var(--c-ok); }
+
+  /* Controls that change the scene sit in it: views top right, the counter-check bottom left,
+     the reach of its zone reading bottom right. */
+  .frame-control {
+    position: absolute;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .frame-control[hidden] { display: none; }
+  .view-choice { inset-block-start: var(--space-2); inset-inline-end: var(--space-2); }
+  .counter-check { inset-block-end: var(--space-2); inset-inline-start: var(--space-2); }
+  .frame-control .segmented-control { background: color-mix(in oklab, var(--c-bg) 80%, transparent); }
+  .choice-label { font-weight: 600; }
+  .zone-note {
+    inset-block-end: var(--space-2);
+    inset-inline-end: var(--space-2);
+    max-inline-size: 12rem;
+    margin: 0;
+    padding: 0.05em 0.5em;
+    border-radius: var(--radius);
+    background: color-mix(in oklab, var(--c-bg) 88%, transparent);
+    color: var(--c-text-muted);
+    font-size: var(--step--1);
+    line-height: 1.25;
+  }
+  @media (max-width: 39.99rem) {
+    .frame-control { gap: var(--space-1); font-size: var(--step--1); }
+    .frame-control .segmented-control > button { padding-inline: var(--space-2); min-block-size: 2.25rem; }
+    /* A phone frame has no room beside the choices: the note moves into the free top left corner,
+       and in the 2D view, whose mode line holds that corner, one line below the mode line. */
+    .zone-note { inset-block: var(--space-2) auto; inset-inline: var(--space-2) auto; max-inline-size: 6.5rem; font-size: var(--step-label); }
+    .scene-frame:has(> #fallback-mark:not([hidden])) .zone-note { inset-block-start: 2.5rem; max-inline-size: none; }
+  }
+
+  .scene-mode {
+    inset-block-start: var(--space-2);
+    inset-inline-start: var(--space-2);
+    gap: 0.4em;
+    padding: 0.1em 0.6em;
+    border-radius: var(--radius);
+    background: color-mix(in oklab, var(--c-bg) 88%, transparent);
+    font-size: var(--step--1);
+  }
+  .scene-mode.warn { color: var(--c-warn); }
+  .scene-notice {
+    position: absolute;
+    inset-inline: var(--space-3);
+    inset-block-start: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius);
+    background: var(--c-warn-soft);
+  }
+
+  /* Step bar and playback. One row where the column holds both; otherwise the step bar with
+     Tempo above, play and the three step icons below. */
+  .transport {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) repeat(3, 2.75rem);
+    grid-template-areas: "track speed speed speed" "play restart prev next";
+    gap: var(--space-2) var(--space-2);
+    align-items: center;
+  }
+  .track { grid-area: track; }
+  #play-toggle { grid-area: play; justify-self: start; gap: var(--space-2); }
+  #restart { grid-area: restart; }
+  #prev-step { grid-area: prev; }
+  #next-step { grid-area: next; }
+  .speed { grid-area: speed; justify-self: end; }
+  @media (min-width: 48rem) and (max-width: 63.99rem), (min-width: 76rem) {
+    .transport { display: flex; gap: var(--space-2); }
+    .track { flex: 1; margin-inline-end: var(--space-2); }
+    .speed { margin-inline-start: var(--space-2); }
+    /* Wide enough for its longest wording, so the row does not move when "Schritt abspielen" becomes "Anhalten". */
+    #play-toggle { min-inline-size: 12.5rem; }
+  }
+  @media (max-width: 39.99rem) {
+    #play-toggle { justify-self: stretch; padding-inline: var(--space-2); font-size: var(--step--1); }
+  }
+  .transport .icon-button { inline-size: 2.75rem; block-size: 2.75rem; }
+  .speed { display: inline-flex; flex: none; align-items: center; gap: var(--space-2); font-weight: 600; }
+  .speed select { font-weight: 400; }
+
+  /* The step bar: one segment per step, proportional to its duration, filled as far as played,
+     numbered below 64rem, where only the current rule shows. */
+  .track { display: flex; gap: 3px; min-inline-size: 0; }
+  .segment {
+    --fill: 0;
+    flex-basis: 0;
+    display: grid;
+    gap: 2px;
+    min-inline-size: 0;
+    min-block-size: 2rem;
+    padding: 0 0 var(--space-1);
+    border: 0;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--c-text-muted);
+    font: inherit;
+    font-size: var(--step--1);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+  }
+  .segment::before {
+    content: "";
+    block-size: 0.5rem;
+    border-radius: 2px;
+    background: linear-gradient(to right, var(--c-accent) calc(var(--fill) * 100%), var(--c-border) 0);
+  }
+  .segment:hover { color: var(--c-accent); }
+  .segment[aria-current="step"] { color: var(--c-accent); font-weight: 600; }
+  /* Where the numbered rule list stands beside the scene, it carries the step numbers alone;
+     the segments keep them in their accessible names (independent review 2026-11-06). */
+  @media (min-width: 64rem) {
+    .segment { font-size: 0; align-content: center; }
+  }
+
+  /* The rules of the lesson, numbered; the current one in bold with its reason and a quiet source line.
+     Below 64rem only the current rule shows, the step bar names its number. */
+  .rules { display: grid; gap: var(--space-2); align-content: start; margin: 0; padding-inline-start: 1.75em; font-variant-numeric: tabular-nums; }
+  .rules li { max-inline-size: none; line-height: var(--leading-snug); }
+  .rules li::marker { color: var(--c-text-muted); }
+  .rules li[aria-current]::marker { color: var(--c-text); font-weight: 600; }
+  .rules .link-text { color: var(--c-text); }
+  .rules .rule { font-weight: 600; }
+  .rules .rule:focus { outline: none; }
+  .rules :is(.why, .sources) { margin: var(--space-1) 0 0; }
+  .rules .sources { color: var(--c-text-muted); font-size: var(--step--1); }
+  @media (max-width: 63.99rem) {
+    .rules { padding-inline-start: 0; list-style: none; }
+    .rules li:not([aria-current]) { display: none; }
+  }
+
+  /* An invalid lesson: one sentence, then its reasons as a list. */
+  #load-error :is(p, ul) { margin: 0; }
+  #load-error ul { margin-block-start: var(--space-2); padding-inline-start: 1.25em; }
+}
+
+/* The explainer film below the step tiles: title, its review state, the player and one line on what it rests on. */
+.film { display: grid; gap: var(--space-2); max-inline-size: 60rem; margin-block-start: var(--space-5); }
+.film[hidden] { display: none; }
+.film-title { margin: 0; font-weight: 600; }
+.film-state { display: inline-flex; align-items: center; gap: 0.35em; margin: 0; font-size: var(--step--1); font-weight: 600; }
+.film video { inline-size: 100%; block-size: auto; aspect-ratio: 16 / 9; border-radius: var(--radius-lg); background: var(--c-text); }
+.film-note { margin: 0; color: var(--c-text-muted); font-size: var(--step--1); }

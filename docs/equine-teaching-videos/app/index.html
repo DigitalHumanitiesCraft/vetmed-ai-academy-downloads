@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lehrvideos Pferdeklinik</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../shared/base.css">
+  <link rel="stylesheet" href="app.css">
+  <script type="module" src="../shared/overlay.js"></script>
+  <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.js" } }</script>
+  <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/film.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <nav aria-label="Hauptnavigation">
+      <h1>Lehrvideos Pferdeklinik</h1>
+    </nav>
+    <details class="provenance">
+      <summary><svg class="icon" aria-hidden="true"><use href="../shared/icons.svg#flask"></use></svg>Herkunft</summary>
+      <ul>
+        <li id="origin-line" hidden></li>
+        <li>Figuren aus abstrakten Grundformen, keine Anatomie</li>
+        <li>Bereiche am Boden schematisch, keine gemessenen Abstände</li>
+      </ul>
+    </details>
+  </header>
+  <main>
+    <div id="load-error" class="notice error" role="alert" hidden></div>
+
+    <!-- The lesson line of both views: on the overview the title, in a step the way back to the overview. -->
+    <div id="lesson-head" class="lesson-head" hidden>
+      <h2 id="lesson-title"><span id="lesson-name"></span><a id="to-overview" href="./" hidden></a></h2>
+      <p class="review-state"><svg class="icon" aria-hidden="true"><use href="../shared/icons.svg#circle-dashed"></use></svg><span class="review-text"></span></p>
+      <button type="button" class="button" id="play-lesson" disabled><svg class="icon" aria-hidden="true"><use href="../shared/icons.svg#play"></use></svg>Lektion abspielen</button>
+    </div>
+
+    <!-- Lesson overview: the address names no step. -->
+    <section id="overview" class="overview" aria-labelledby="lesson-title" hidden>
+      <ol id="step-tiles" class="step-tiles"></ol>
+      <nav id="lesson-nav" class="lesson-nav" aria-labelledby="lesson-nav-title" hidden>
+        <p><span id="lesson-nav-title">Weitere Lektionen</span>: <span id="lesson-list"></span></p>
+      </nav>
+      <!-- A film rendered from code. Its file is a local render outside the application, so the section shows only where the file exists. -->
+      <section id="film" class="film" aria-labelledby="film-title" hidden>
+        <p id="film-title" class="film-title">Erklärfilm: Sicherer Umgang mit Pferden an der Pferdeklinik</p>
+        <p class="film-state"><svg class="icon" aria-hidden="true"><use href="../shared/icons.svg#circle-dashed"></use></svg>Entwurf, nicht fachlich geprüft</p>
+        <video id="film-video" controls preload="metadata" width="1280" height="720" aria-describedby="film-note"></video>
+        <p id="film-note" class="film-note">Regeln nach zwei Regelwerken der Pferdeklinik, Stimme synthetisch, Reichweiten schematisch ohne Maßangaben.</p>
+      </section>
+    </section>
+
+    <!-- One step: the address names it with ?step=. -->
+    <section id="detail" class="detail" aria-labelledby="lesson-title" hidden>
+      <div class="scene-frame">
+        <canvas id="scene" role="img" aria-label="Szene mit abstrakter Pferdefigur, Person und farbigen Bereichen am Boden" aria-describedby="step-text scene-text"></canvas>
+        <svg id="leaders" class="leaders" aria-hidden="true"></svg>
+        <div id="zone-labels" aria-hidden="true"></div>
+        <span class="scene-label person-label" id="label-person" aria-hidden="true" hidden><span class="person-line"><span id="person-mark"></span><span class="person-name">Person</span></span><span id="person-zone"></span><span id="person-cue" hidden></span></span>
+        <div class="frame-control view-choice" id="camera-controls" role="group" aria-label="Ansicht"><div class="segmented-control" id="view"></div></div>
+        <div class="frame-control counter-check" id="counter-check" role="group" aria-labelledby="counter-label" aria-describedby="zone-note" hidden>
+          <span id="counter-label" class="choice-label">Gegenprobe</span>
+          <div class="segmented-control" id="placement"></div>
+        </div>
+        <p id="zone-note" class="frame-control zone-note" hidden>Zonen schematisch</p>
+        <p id="fallback-mark" class="frame-control scene-mode" hidden><span id="fallback-text"></span> <a id="view-3d" href="./" hidden>3D-Ansicht öffnen</a></p>
+        <p id="context-notice" class="scene-notice" role="status" hidden>3D-Darstellung unterbrochen. <a id="context-2d" href="?renderer=2d">In 2D-Draufsicht weiter</a></p>
+      </div>
+
+      <div class="transport">
+        <div class="track" id="track" role="group" aria-label="Schritte"></div>
+        <button type="button" class="button" id="play-toggle" disabled><svg class="icon" aria-hidden="true"><use href="../shared/icons.svg#play"></use></svg><span>Schritt abspielen</span></button>
+        <button type="button" class="icon-button" id="restart" aria-label="Lektion von vorn" disabled><svg class="icon" aria-hidden="true"><use href="../shared/icons.svg#skip-back"></use></svg></button>
+        <button type="button" class="icon-button" id="prev-step" aria-label="Vorheriger Schritt" disabled><svg class="icon" aria-hidden="true"><use href="../shared/icons.svg#chevron-left"></use></svg></button>
+        <button type="button" class="icon-button" id="next-step" aria-label="Nächster Schritt" disabled><svg class="icon" aria-hidden="true"><use href="../shared/icons.svg#chevron-right"></use></svg></button>
+        <label class="speed">Tempo <select id="speed" disabled></select></label>
+      </div>
+
+      <!-- Every rule of the lesson; the current one carries its reason and sources. Below 64rem only the current one shows. -->
+      <ol id="rules" class="rules"></ol>
+
+      <!-- Descriptions of the canvas: the current step and where the person stands. -->
+      <p id="step-text" hidden></p>
+      <p id="scene-text" hidden></p>
+    </section>
+    <!-- Announces deliberate changes only: chosen steps, playback state, ends and renderer notices. -->
+    <p id="announce" class="visually-hidden" aria-live="polite"></p>
+  </main>
+</body>
+</html>

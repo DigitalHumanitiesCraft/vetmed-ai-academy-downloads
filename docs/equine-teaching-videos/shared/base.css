@@ -1,0 +1,705 @@
+/* Shared base for the overview and all case apps. Each app links this file
+   and adds its own app.css for case-specific components.
+   State selectors (hover, pressed, open) are wrapped in :where() so they add
+   no specificity: a case rule on the same class, loaded later, always wins. */
+@layer reset, base, tokens, layout, components, case, utilities;
+
+@layer reset {
+  *, *::before, *::after { box-sizing: border-box; }
+  * { margin: 0; }
+  html { -webkit-text-size-adjust: none; text-size-adjust: none; }
+  body { min-block-size: 100vh; line-height: var(--leading-body, 1.5); }
+  img, svg, video, canvas { display: block; max-inline-size: 100%; }
+  input, button, textarea, select { font: inherit; }
+  /* Layout classes set display and would otherwise override the hidden attribute. */
+  [hidden] { display: none !important; }
+  p, h1, h2, h3, h4 { overflow-wrap: break-word; }
+}
+
+/* DM Mono (SIL Open Font License, site/shared/fonts/DMMono-OFL.txt) for code,
+   file names and identifiers a person types or matches, nothing else
+   (knowledge/design.md, Visual system). Medium serves the 600 weight, so a
+   bold identifier is drawn from the font rather than synthesised. */
+@font-face {
+  font-family: "DM Mono";
+  src: url("fonts/DMMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Mono";
+  src: url("fonts/DMMono-Medium.woff2") format("woff2");
+  font-weight: 500 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer tokens {
+  /* Light only, also under a dark operating-system preference (design.md,
+     2026-09-25). Forced-colours mode stays with the system. tools/contrast.mjs
+     computes the contrast of the text and boundary pairs from these values. */
+  :root {
+    color-scheme: light;
+
+    /* Visual system after the public web style of the University of Veterinary
+       Medicine Vienna (knowledge/design.md, Visual system): black and white,
+       quiet cool greys, black as the one interaction colour. The page ground is
+       white (shared contract of 2026-09-27); --c-page stays as its own name so
+       surfaces that must match the page, such as sticky bars, follow it. The
+       muted grey is a step darker than the university's own, so it keeps 4.5:1
+       on the surface grey. */
+    --c-bg: #ffffff;
+    --c-page: var(--c-bg);
+    --c-surface: #f4f5f7;
+    --c-text: #212529;
+    --c-text-muted: #5f676f;
+    --c-border: #dee2e6;
+    /* Boundary of controls that must be found without colour cues (WCAG 1.4.11, 3:1). */
+    --c-border-strong: #868e96;
+    /* Interaction is black ink: links underlined, the primary action a black
+       fill, the current view a black marker. Distinct from --c-text, so the
+       checks can tell an active element from plain text. */
+    --c-accent: #000000;
+    --c-accent-hover: #343a40;
+    --c-accent-strong: #000000;
+    --c-accent-contrast: #ffffff;
+    /* Selection and hover grounds stay in the cool grey family of the neutrals. */
+    --c-accent-soft: #e9ecef;
+    --c-accent-faint: #f1f3f5;
+    --c-focus: var(--c-accent);
+
+    /* Area colours of the university, identity only (knowledge/design.md, Area
+       identity): a thin rule beside the area name, never a state and never a
+       large surface. The overview group sets data-area. */
+    --c-area-universitaet: #af2144;
+    --c-area-studium: #b35c42;
+    --c-area-forschung: #757575;
+    --c-area-tierspital: #296e53;
+
+    /* Status colours always pair with a symbol or text, never carry meaning alone. */
+    --c-ok: oklch(45% 0.12 150);
+    --c-warn: oklch(48% 0.12 70);
+    /* Darker than the warning colour, so the two severities also differ in
+       lightness for readers who cannot tell red from amber by hue. */
+    --c-error: oklch(42% 0.17 28);
+    --c-ok-soft: color-mix(in oklab, var(--c-ok) 12%, var(--c-bg));
+    --c-warn-soft: color-mix(in oklab, var(--c-warn) 14%, var(--c-bg));
+    --c-error-soft: color-mix(in oklab, var(--c-error) 12%, var(--c-bg));
+
+    /* Colour roles (knowledge/design.md, Colour roles): the accent is for
+       interaction, data marks at rest are neutral, and status colours mark what
+       needs a decision. --c-data passes 3:1 against the page for graphical marks. */
+    --c-data: oklch(55% 0.02 250);
+    --c-data-soft: oklch(86% 0.012 250);
+
+    /* Categorical series in this fixed order, never cycled; a ninth category is
+       grouped. Validated on the white ground with the dataviz validator
+       (2026-10-24): adjacent CVD ΔE ≥ 9.1, normal-vision ΔE ≥ 19.6. Slots 3, 4
+       and 5 sit below 3:1, so a chart using them carries a legend with direct
+       labels or a table view. Charts with all pairs in view (scatter) use only
+       the first three slots. */
+    --c-cat-1: #2a78d6;
+    --c-cat-2: #eb6834;
+    --c-cat-3: #1baf7a;
+    --c-cat-4: #eda100;
+    --c-cat-5: #e87ba4;
+    --c-cat-6: #008300;
+    --c-cat-7: #6250d6;
+    --c-cat-8: #e34948;
+
+    /* Elevation: an edge for resting surfaces, a lift for overlays. */
+    --shadow-edge: 0 0 0 1px rgb(33 37 41 / 0.09), 0 1px 2px rgb(33 37 41 / 0.05);
+    --shadow-raised: 0 1px 2px rgb(33 37 41 / 0.08), 0 6px 16px rgb(33 37 41 / 0.08);
+
+    /* FreeSans is the university's text face; it is not vendored (GPL with
+       font exception, large files), so the stack falls back to the Helvetica
+       family it follows. DM Mono is vendored for code and identifiers only;
+       labels and captions use the text face (design decision of 2026-11-06). */
+    --font-body: "FreeSans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-mono: "DM Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --font-label: var(--font-body);
+
+    /* A minor-third scale around a 16-17 px body, fluid between phone and desktop widths. */
+    --step--1: clamp(0.875rem, 0.85rem + 0.1vw, 0.9375rem);
+    --step-0: clamp(1rem, 0.97rem + 0.15vw, 1.0625rem);
+    --step-1: clamp(1.15rem, 1.1rem + 0.3vw, 1.3rem);
+    --step-2: clamp(1.35rem, 1.25rem + 0.5vw, 1.65rem);
+    --step-3: clamp(1.6rem, 1.4rem + 1vw, 2.25rem);
+    /* Small muted labels and captions in the text face. */
+    --step-label: 0.875rem;
+    --leading-tight: 1.2;
+    --leading-snug: 1.35;
+    --leading-body: 1.5;
+
+    /* Spacing on a 4 px grid; the larger steps separate regions, the smaller ones group. */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2rem;
+    --space-7: 3rem;
+
+    /* Nearly square corners, as on the university's pages. */
+    --radius: 0.125rem;
+    --radius-lg: 0.25rem;
+    --control-height: 2.5rem;
+    --measure: 72ch;
+    --page-max: 78rem;
+    /* Sidebar of the tool layout, a little wider where the views have room to spare. */
+    --sidebar-width: 17rem;
+    --transition-quick: 120ms ease-out;
+  }
+  @media (min-width: 80rem) { :root { --sidebar-width: 18rem; } }
+}
+
+@layer base {
+  body {
+    font-family: var(--font-body);
+    font-size: var(--step-0);
+    color: var(--c-text);
+    background: var(--c-page);
+  }
+  /* Two weights only, 400 and 600; browser defaults would otherwise add 700. */
+  h1, h2, h3, h4, b, strong, th { font-weight: 600; }
+  h1 { font-size: var(--step-2); line-height: var(--leading-tight); letter-spacing: -0.01em; text-wrap: balance; }
+  h2 { font-size: var(--step-1); line-height: var(--leading-snug); letter-spacing: -0.005em; }
+  h3, h4 { font-size: var(--step-0); line-height: var(--leading-snug); }
+  p, li { max-inline-size: var(--measure); }
+  /* Links are black ink with an underline, the cue that replaces a link colour.
+     Row and list links (.link-text) drop it at rest, see the components layer. */
+  a { color: var(--c-accent); text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+  a:where(:hover) { color: var(--c-accent-hover); text-decoration-thickness: 2px; }
+  code, pre { font-family: var(--font-mono); font-size: 0.925em; }
+  :focus-visible { outline: 3px solid var(--c-focus); outline-offset: 2px; }
+  input, select, textarea, button { accent-color: var(--c-accent); }
+  table { border-collapse: collapse; }
+  ::placeholder { color: var(--c-text-muted); opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer layout {
+  .app-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    background: var(--c-bg);
+    padding-block: var(--space-3);
+    padding-inline: max(var(--space-4), calc((100% - var(--page-max)) / 2 + var(--space-4)));
+  }
+  .app-header nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-inline-size: 0;
+  }
+  .app-header .header-row { min-inline-size: 0; }
+  .app-header h1 {
+    min-inline-size: 0;
+    font-size: var(--step-1);
+    letter-spacing: -0.005em;
+    /* Break compound names at their hyphen; break-word split "Forschungsprojekt" / "-Assistent" at 360 px. */
+    overflow-wrap: normal;
+  }
+  .app-header nav > h1 { flex: 1; }
+  .app-header a { color: var(--c-text); text-decoration: none; }
+  .app-header a:where(:hover) { color: var(--c-accent); }
+  .app-header > .provenance { align-self: start; }
+  /* Area identity belongs to the portfolio groups, not the working header. */
+  [data-area="Universität"] { --area: var(--c-area-universitaet); }
+  [data-area="Studium"] { --area: var(--c-area-studium); }
+  [data-area="Forschung"] { --area: var(--c-area-forschung); }
+  [data-area="Tierspital"] { --area: var(--c-area-tierspital); }
+  @media (max-width: 40rem) {
+    .app-header nav { gap: var(--space-2); }
+    .app-header h1 { font-size: var(--step-0); }
+  }
+
+  main {
+    max-inline-size: var(--page-max);
+    margin-inline: auto;
+    padding: var(--space-4) var(--space-4) var(--space-7);
+    display: grid;
+    gap: var(--space-4);
+  }
+  /* Grid children default to min-content width, which lets long words or tables widen the page. */
+  main > *, .stack > * { min-inline-size: 0; }
+  .stack { display: grid; gap: var(--space-3); align-content: start; }
+  .cluster { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; }
+
+  /* Tool layout (knowledge/design.md, Tool layout): a filter sidebar beside
+     the sibling views of one dataset. Below 56rem the sidebar stands above the
+     views, and its body folds behind the Filter button (utilities layer). */
+  .tool { display: grid; gap: var(--space-4); align-items: start; }
+  @media (min-width: 56rem) {
+    /* The sidebar scrolls with the page: a scroll box of its own would be taller than the viewport and its scrollbar would narrow the fields. */
+    .tool { grid-template-columns: var(--sidebar-width) minmax(0, 1fr); gap: var(--space-4); }
+  }
+  /* The wider gap only where the views have room; at tablet width the grotesque's wider figures need the space in the tables. */
+  @media (min-width: 80rem) {
+    .tool { gap: var(--space-5); }
+  }
+  .tool-sidebar { display: grid; gap: var(--space-4); align-content: start; font-size: var(--step--1); }
+  .tool-body { display: grid; gap: var(--space-5); align-content: start; }
+  .tool-main { display: grid; gap: var(--space-4); align-content: start; }
+  /* Grid children default to min-content width, which would let wide tables widen the page. */
+  :is(.tool, .tool-sidebar, .tool-body, .tool-main) > * { min-inline-size: 0; }
+}
+
+@layer components {
+  /* Text button: filled for the primary action of a view, .secondary outlined for the others. */
+  .button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-block-size: var(--control-height);
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--c-accent);
+    border-radius: var(--radius);
+    background: var(--c-accent);
+    color: var(--c-accent-contrast);
+    font-weight: 600;
+    line-height: var(--leading-tight);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--transition-quick), border-color var(--transition-quick), color var(--transition-quick);
+  }
+  .button:where(:hover:not(:disabled, [aria-disabled="true"], .secondary)) { background: var(--c-accent-hover); border-color: var(--c-accent-hover); }
+  .button:where(.secondary) { background: var(--c-bg); color: var(--c-accent); }
+  .button:where(.secondary:hover:not(:disabled, [aria-disabled="true"])) { background: var(--c-accent-faint); }
+  /* A secondary button that toggles a mode shows the active mode by fill and a doubled edge, not colour alone. */
+  .button:where(.secondary[aria-pressed="true"]) {
+    background: var(--c-accent-soft);
+    color: var(--c-accent-strong);
+    box-shadow: inset 0 0 0 1px var(--c-accent);
+  }
+  /* An unavailable button, primary or not, is a light field with muted text and an edge, so it never reads as an active grey button. */
+  .button:is(:disabled, [aria-disabled="true"]) { border-color: var(--c-border); background: var(--c-surface); color: var(--c-text-muted); box-shadow: none; cursor: not-allowed; }
+  /* Confirms an action that discards work; never the default focus. */
+  .button:where(.danger) { background: var(--c-error); border-color: var(--c-error); color: var(--c-accent-contrast); }
+  .button:where(.danger:hover:not(:disabled, [aria-disabled="true"])) { background: color-mix(in oklab, var(--c-error) 85%, black); border-color: color-mix(in oklab, var(--c-error) 85%, black); }
+  /* Compact text button for actions inside a row or a panel. */
+  .button:where(.small) { min-block-size: 2rem; padding: var(--space-1) var(--space-3); font-size: var(--step--1); }
+
+  /* Text that acts (knowledge/design.md, Visual system): a button set as a
+     link carries the underline of a link in text, because the interaction
+     colour is black ink like the text. The menus, the provenance and the
+     local-file indicator have their own form. */
+  :is(.link-button, .text-button) { padding: 0; border: 0; background: none; color: var(--c-accent); font: inherit; text-align: start; cursor: pointer; }
+  /* Zero specificity, so a .link-text on the same element wins. */
+  :where(.link-button, .text-button) {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+  :where(.link-button, .text-button):where(:hover) { text-decoration-thickness: 2px; }
+  /* The name of a row or card that is one link, a link among many in a list
+     (.link-text) and the summary of a plain disclosure: no underline at rest,
+     an underline on hover and keyboard focus, so a list of targets does not
+     read as a page of underlines (operator decision E3 of 2026-11-06). */
+  :is(a, button) .link-text, :is(a, button).link-text { text-decoration: none; }
+  :is(a, button):where(:hover, :focus-visible) .link-text, :is(a, button).link-text:where(:hover, :focus-visible),
+  :where(details:not(.provenance, .menu, .local-file) > summary:not(.button)):where(:hover, :focus-visible) {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+  /* Every plain disclosure carries the same chevron, whatever display a case
+     gives its summary: a flex summary loses the native marker and then read as
+     a bold heading (independent review 2026-11-06). A toggle button inside a
+     row that discloses detail below it (.row-disclosure) draws the same
+     chevron, turned by its aria-expanded state. A case may place it, for
+     example in a grid area, and keeps its geometry. */
+  :where(details:not(.provenance, .menu, .local-file) > summary:not(.button)) { list-style: none; cursor: pointer; }
+  :where(details:not(.provenance, .menu, .local-file) > summary:not(.button))::-webkit-details-marker { display: none; }
+  :where(details:not(.provenance, .menu, .local-file) > summary:not(.button), .row-disclosure)::before {
+    content: "";
+    display: inline-block;
+    flex: none;
+    inline-size: 0.4em;
+    block-size: 0.4em;
+    margin-inline: 0.1em 0.5em;
+    border: solid currentColor;
+    border-width: 0 2px 2px 0;
+    rotate: -45deg;
+    translate: 0 -0.1em;
+    transition: rotate var(--transition-quick);
+  }
+  :where(details[open]:not(.provenance, .menu, .local-file) > summary:not(.button), .row-disclosure[aria-expanded="true"])::before { rotate: 45deg; translate: 0 -0.2em; }
+
+  label { font-weight: 600; }
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]), select, textarea {
+    inline-size: 100%;
+    min-block-size: var(--control-height);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--c-border-strong);
+    border-radius: var(--radius);
+    background: var(--c-bg);
+    color: var(--c-text);
+    transition: border-color var(--transition-quick);
+  }
+  /* Same specificity as the rule above, so it applies, and a case rule on a field still wins. */
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]):where(:hover:not(:disabled, :focus)),
+  :is(select, textarea):where(:hover:not(:disabled, :focus)) { border-color: var(--c-text-muted); }
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]):where(:disabled),
+  :is(select, textarea):where(:disabled) { background: var(--c-surface); color: var(--c-text-muted); }
+  /* Script validation marks fields with aria-invalid; it looks like native invalidity plus a doubled edge. */
+  :is(input, select, textarea):user-invalid { border-color: var(--c-error); }
+  :is(input, select, textarea)[aria-invalid="true"] { border-color: var(--c-error); box-shadow: inset 0 0 0 1px var(--c-error); }
+  /* Fields in a row keep their controls aligned when one of them shows an error line. */
+  .field { display: grid; gap: var(--space-1); align-content: start; }
+  .field-error { color: var(--c-error); font-weight: 600; }
+
+  /* Symbols from site/shared/icons.svg. Size follows the text. */
+  .icon {
+    display: inline-block;
+    inline-size: 1.15em;
+    block-size: 1.15em;
+    flex: none;
+    vertical-align: -0.2em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Icon-only action. Only for widely understood actions (play, pause,
+     close, directional moves); the aria-label is the accessible name and also
+     appears as a tooltip on hover and keyboard focus. Borderless: the symbol
+     is the control's visible form, and hover or focus add a ground. The
+     transparent border keeps a boundary under forced colours. */
+  .icon-button {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    inline-size: var(--control-height);
+    block-size: var(--control-height);
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--c-accent);
+    cursor: pointer;
+    transition: background-color var(--transition-quick);
+  }
+  .icon-button .icon { inline-size: 1.25rem; block-size: 1.25rem; }
+  /* Row action inside a list or table: smaller. */
+  .icon-button:where(.quiet) { inline-size: 2rem; block-size: 2rem; }
+  .icon-button:where(:hover:not(:disabled, [aria-disabled="true"])) { background: var(--c-accent-soft); }
+  /* aria-disabled keeps a control focusable while it is unavailable; it looks the same as :disabled. */
+  .icon-button:where(:disabled, [aria-disabled="true"]) { color: var(--c-text-muted); opacity: 0.55; cursor: not-allowed; }
+  .icon-button[aria-label]:is(:hover, :focus-visible)::after {
+    content: attr(aria-label);
+    position: absolute;
+    inset-block-start: calc(100% + 0.35rem);
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    z-index: 20;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius);
+    background: var(--c-text);
+    color: var(--c-bg);
+    font-size: var(--step--1);
+    font-weight: 600;
+    line-height: var(--leading-snug);
+    /* Long names wrap instead of leaving a narrow viewport; overlay.js assumes the same cap. */
+    inline-size: max-content;
+    max-inline-size: min(18rem, calc(100vw - 1rem));
+    pointer-events: none;
+  }
+  /* overlay.js sets data-tip when a centred tooltip would cross the viewport
+     edge, so the tooltip then aligns with the button's start or end, and
+     data-tip-block when it would leave the bottom, so it opens above. */
+  .icon-button[aria-label][data-tip="start"]:is(:hover, :focus-visible)::after { inset-inline-start: 0; translate: none; }
+  .icon-button[aria-label][data-tip="end"]:is(:hover, :focus-visible)::after { inset-inline-start: auto; inset-inline-end: 0; translate: none; }
+  .icon-button[aria-label][data-tip-block="above"]:is(:hover, :focus-visible)::after { inset-block-start: auto; inset-block-end: calc(100% + 0.35rem); }
+
+  /* Choice among a few mutually exclusive views or targets: buttons with
+     aria-pressed, or labels wrapping radio inputs. */
+  .segmented-control {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 2px;
+    border-radius: calc(var(--radius) + 2px);
+    background: var(--c-surface);
+    /* The hairline keeps the control's shape on a surface of the same grey. */
+    box-shadow: inset 0 0 0 1px var(--c-border);
+  }
+  .segmented-control > :is(button, label) {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-block-size: calc(var(--control-height) - 4px);
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--c-text-muted);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .segmented-control > label > input { position: absolute; opacity: 0; pointer-events: none; }
+  .segmented-control > :where(button, label):hover { color: var(--c-accent); }
+  .segmented-control > :is(button[aria-pressed="true"], label:has(input:checked)) {
+    background: var(--c-bg);
+    color: var(--c-accent);
+    box-shadow: var(--shadow-edge);
+  }
+  .segmented-control > label:has(input:focus-visible) { outline: 3px solid var(--c-focus); outline-offset: 2px; }
+
+  /* View tabs (knowledge/design.md, View tabs): sibling views a person may
+     return to, as links with their own address and aria-current="page" on the
+     current one. Links, not ARIA tabs, so Tab moves through them and Enter
+     follows one. The current view takes the accent and an underline marker. */
+  .view-tabs { display: flex; flex-wrap: wrap; gap: 0 var(--space-5); box-shadow: inset 0 -1px 0 var(--c-border); }
+  .view-tabs a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-block-size: 2.75rem;
+    color: var(--c-text-muted);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .view-tabs a:where(:hover) { color: var(--c-text); }
+  .view-tabs a[aria-current="page"] { color: var(--c-accent); box-shadow: inset 0 -3px 0 var(--c-accent); }
+  /* On a phone the row tightens and wraps onto a second line where needed. */
+  @media (max-width: 30rem) {
+    .view-tabs { gap: 0 var(--space-4); font-size: var(--step--1); }
+    .view-tabs a { min-block-size: 2.5rem; }
+  }
+
+  /* Tool sidebar (knowledge/design.md, Tool layout): optional key figures
+     that answer the view's question or count the filtered data, the Filter
+     button for narrow screens, filter groups that act at once, reset and a
+     foot for data and download. Scoped to the sidebar, because cases use some
+     of these names elsewhere. */
+  /* Key figures as large numerals over small muted captions; the caption
+     stays first in the markup, so it is read before its value. */
+  .tool-figures { display: grid; gap: var(--space-2); }
+  .tool-figures .filtered-mark { color: var(--c-text-muted); font-family: var(--font-label); font-size: var(--step-label); }
+  /* A mark on one figure's caption, for a sidebar whose other figures do not follow the filter (site/shared/tool.js). */
+  .tool-figures dt > .filtered-mark { color: var(--c-text); }
+  .tool-figures > dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: var(--space-4) var(--space-4); }
+  .tool-figures > dl > div { display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 0.15rem; }
+  .tool-figures dt { color: var(--c-text-muted); font-family: var(--font-label); font-size: var(--step-label); line-height: var(--leading-snug); }
+  .tool-figures dd { margin: 0; font-size: var(--step-1); font-weight: 600; line-height: var(--leading-tight); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .tool-toggle {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-block-size: var(--control-height);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--c-border-strong);
+    border-radius: var(--radius);
+    background: var(--c-bg);
+    color: var(--c-accent);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .tool-toggle::after { content: ""; inline-size: 0.45em; block-size: 0.45em; border: solid currentColor; border-width: 0 2px 2px 0; rotate: 45deg; translate: 0 -0.15em; }
+  .tool-toggle[aria-expanded="true"]::after { rotate: -135deg; translate: 0 0.1em; }
+  .tool-sidebar .group-title { display: block; padding: 0; margin-block-end: var(--space-2); color: var(--c-text); font-size: var(--step--1); font-weight: 600; }
+  /* A group with a choice is a chosen option, so its heading takes the accent and a dot. */
+  .tool-sidebar .filter-group > .group-title.is-filtered { color: var(--c-accent); }
+  .tool-sidebar .filter-group > .group-title.is-filtered::before { content: ""; display: inline-block; inline-size: 0.45em; block-size: 0.45em; margin-inline-end: 0.4em; border-radius: 50%; background: currentColor; vertical-align: 0.12em; }
+  .tool-sidebar .filter-groups { display: grid; gap: var(--space-4); }
+  .tool-sidebar .filter-group { display: grid; min-inline-size: 0; padding: 0; margin: 0; border: 0; }
+  .tool-sidebar .filter-options { display: grid; }
+  .tool-sidebar .filter-option { display: flex; align-items: center; gap: var(--space-2); min-block-size: 1.9rem; font-weight: 400; cursor: pointer; }
+  .tool-sidebar .filter-option input { flex: none; inline-size: 1rem; block-size: 1rem; margin: 0; }
+  .tool-sidebar .filter-option:where(:hover) { color: var(--c-accent); }
+  .tool-reset { justify-self: start; }
+  .tool-foot { display: grid; gap: var(--space-3); align-content: start; }
+  .tool-foot > details > summary { display: inline-flex; align-items: center; min-block-size: var(--control-height); color: var(--c-accent); font-weight: 600; cursor: pointer; }
+
+  /* One provenance disclosure per page in the shared header replaces status
+     pills under the title. The summary stays visible and names the
+     interpretation-changing status in a few words; the list holds the detail.
+     It has one neutral style: the qualification informs, it does not warn. */
+  .provenance { position: relative; }
+  .provenance > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    padding: 0.25em 0.6em;
+    border-radius: var(--radius);
+    background: var(--c-bg);
+    color: var(--c-text-muted);
+    font-size: var(--step--1);
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+  }
+  .provenance > summary::-webkit-details-marker { display: none; }
+  /* The chevron and the edge mark the summary as a control rather than a static label. */
+  .provenance > summary { box-shadow: inset 0 0 0 1px color-mix(in oklab, currentColor 40%, transparent); }
+  .provenance > summary::after {
+    content: "";
+    inline-size: 0.45em;
+    block-size: 0.45em;
+    margin-inline-start: 0.15em;
+    border: solid currentColor;
+    border-width: 0 2px 2px 0;
+    rotate: 45deg;
+    translate: 0 -0.1em;
+  }
+  .provenance[open] > summary::after { rotate: -135deg; translate: 0 0.1em; }
+  .provenance > summary:where(:hover) { background: var(--c-accent-faint); color: var(--c-text); }
+  .provenance > :not(summary) {
+    position: absolute;
+    inset-inline-end: 0;
+    inset-block-start: calc(100% + 0.4rem);
+    z-index: 30;
+    inline-size: max-content;
+    max-inline-size: min(24rem, calc(100vw - 3rem));
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    background: var(--c-bg);
+    box-shadow: var(--shadow-raised);
+    font-size: var(--step--1);
+    line-height: var(--leading-snug);
+  }
+  /* One statement per item, set apart by a marker and a little space. */
+  .provenance > ul { display: grid; gap: var(--space-2); padding-inline-start: calc(var(--space-4) + 1.1em); list-style: disc; }
+  .provenance li::marker { color: var(--c-text-muted); }
+
+  /* Local-file indicator next to a file a person loaded: a symbol and a short
+     word that open one sentence on where the file goes (knowledge/design.md,
+     Local-file indicator). The dotted underline marks it as a control that
+     explains, as opposed to one that acts. site/shared/local-file.js builds it,
+     site/shared/overlay.js closes it like the other overlays. */
+  .local-file { position: relative; display: inline-block; }
+  .local-file > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    color: var(--c-text-muted);
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-decoration: underline dotted;
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+    list-style: none;
+  }
+  .local-file > summary::-webkit-details-marker { display: none; }
+  .local-file > summary:where(:hover), .local-file[open] > summary { color: var(--c-text); }
+  .local-file > :not(summary) {
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-start: calc(100% + 0.4rem);
+    z-index: 30;
+    inline-size: max-content;
+    max-inline-size: min(20rem, calc(100vw - 2 * var(--space-4)));
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-lg);
+    background: var(--c-bg);
+    box-shadow: var(--shadow-raised);
+    font-size: var(--step--1);
+    font-weight: 400;
+    line-height: var(--leading-snug);
+  }
+
+  /* A menu that overlays the page instead of pushing it down. Behaviour
+     (Escape, outside click, close after a choice) comes from site/shared/overlay.js. */
+  details.menu { position: relative; }
+  details.menu > summary { list-style: none; cursor: pointer; }
+  details.menu > summary::-webkit-details-marker { display: none; }
+  details.menu > :not(summary) {
+    position: absolute;
+    inset-block-start: calc(100% + 0.35rem);
+    z-index: 30;
+    border-radius: var(--radius-lg);
+    background: var(--c-bg);
+    box-shadow: var(--shadow-raised);
+  }
+  details.menu[open] > summary { background: var(--c-accent-soft); }
+  details.menu > .menu-list {
+    inset-inline-end: 0;
+    display: grid;
+    inline-size: max-content;
+    max-inline-size: calc(100vw - 2 * var(--space-4));
+    padding: var(--space-1);
+    list-style: none;
+  }
+  /* On a narrow screen the toolbars wrap and a menu button usually sits at the
+     start edge, where an end-anchored list would open off-screen. */
+  @media (max-width: 40rem) { details.menu > .menu-list { inset-inline: 0 auto; } }
+  .menu-list button {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    inline-size: 100%;
+    min-block-size: var(--control-height);
+    padding: var(--space-2) var(--space-3);
+    border: 0;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--c-text);
+    font-weight: 600;
+    text-align: start;
+    cursor: pointer;
+  }
+  .menu-list button:hover { background: var(--c-accent-soft); }
+  .menu-list .icon { color: var(--c-text-muted); }
+
+  .notice {
+    padding: var(--space-3) var(--space-4);
+    border-inline-start: 4px solid var(--c-border);
+    background: var(--c-surface);
+    border-radius: var(--radius);
+  }
+  .notice.error { border-color: var(--c-error); background: var(--c-error-soft); }
+  .notice.warn { border-color: var(--c-warn); background: var(--c-warn-soft); }
+
+  /* relative: absolutely positioned hidden labels inside must not escape the scroll box. */
+  .table-scroll { overflow-x: auto; position: relative; }
+
+  /* Forced colours (Windows contrast themes) drop backgrounds and shadows, so
+     overlays, markers and pressed states get system-coloured edges instead. */
+  @media (forced-colors: active) {
+    :is(.provenance, details.menu, .local-file) > :not(summary),
+    .icon-button[aria-label]:is(:hover, :focus-visible)::after,
+    .provenance > summary { border: 1px solid CanvasText; }
+    .app-header { border-block-end: 1px solid CanvasText; }
+    .button.secondary[aria-pressed="true"],
+    .segmented-control > :is(button[aria-pressed="true"], label:has(input:checked)) {
+      forced-color-adjust: none;
+      background: Highlight;
+      color: HighlightText;
+      border-color: Highlight;
+    }
+    :is(.button, .icon-button):is(:disabled, [aria-disabled="true"]) { color: GrayText; border-color: GrayText; }
+    .view-tabs a[aria-current="page"] { text-decoration: underline 3px; }
+    .tool-sidebar .group-title.is-filtered { text-decoration: underline; }
+  }
+}
+
+@layer utilities {
+  /* Small muted label, category or caption in the text face. */
+  .meta-label { color: var(--c-text-muted); font-family: var(--font-label); font-size: var(--step-label); font-weight: 400; }
+  /* Folding of the tool sidebar, here so that a case rule on the display of
+     the body or the button cannot undo it: the Filter button exists only below
+     56rem, and there the body shows only while the button is expanded. */
+  @media (min-width: 56rem) { .tool-toggle { display: none; } }
+  @media (max-width: 55.99rem) { .tool-toggle[aria-expanded="false"] + .tool-body { display: none; } }
+  .muted { color: var(--c-text-muted); }
+  .visually-hidden {
+    position: absolute !important;
+    inline-size: 1px; block-size: 1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+}

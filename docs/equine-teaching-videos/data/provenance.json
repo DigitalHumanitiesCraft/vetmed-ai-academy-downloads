@@ -1,0 +1,173 @@
+{
+  "case": "equine-teaching-videos",
+  "files": {
+    "data/lessons/index.json": {
+      "origin": "synthetic",
+      "generation": "Hand-authored on 2026-09-28 as the list of prepared lessons.",
+      "expectedUse": "The address parameter lesson selects one of the listed ids; any other value opens the first lesson. The viewer lists the lessons by title only when more than one exists.",
+      "schema": {
+        "lessons": "non-empty array of unique ids of letters, digits, '-' or '_'; data/lessons/<id>.json holds the lesson, whose id equals the file name; the first id is the default lesson"
+      }
+    },
+    "data/lessons/safe-handling-basics.json": {
+      "origin": "source-derived",
+      "generation": "Hand-authored on 2026-09-27 by the implementation lane from three public horse-handling safety guides (see sources). Each step states one rule from those guides as a German title with a one-line reason; positions, timings and zone extents were chosen by hand to show the rule and were not taken from the sources. It replaces the technical geometry experiment of 2026-09-25, which had no teaching content. On 2026-09-28 the file moved from data/sequence.json into the lesson folder, and each step received its passages: the implementation lane read the three retrieved documents again and recorded, per cited source, the page and heading of the SVS leaflet (the PDF edition marked SG-609, Stand 2026) or the section heading of the web page where the rule stands. On 2026-10-24 the lesson title was reworded from \"Sicherer Umgang: annähern, führen, wenden\" to \"Sicherer Umgang beim Annähern, Führen und Wenden\", because the interface avoids colon connectors; steps, poses and passages are unchanged.",
+      "status": "unreviewed: not checked by a veterinarian or teacher",
+      "teachingContent": true,
+      "expectedUse": "Show a first teaching topic, safe handling of a horse on the ground (blind spots, kick zone, approach, position at the shoulder, lead rope, leading, turning), until a responsible teacher reviews or replaces the sequence.",
+      "schema": {
+        "id": "string",
+        "title": "string, German display title",
+        "status": "string, one of the values the application can word ('unreviewed' until domain review)",
+        "origin": "string, one of the values the application can word ('source-derived', 'synthetic')",
+        "units": "object fixing duration 's', position 'scene unit', heading 'degree' and neck 'degree'; other units are rejected",
+        "initial": {
+          "horse": {
+            "x": "number",
+            "z": "number",
+            "heading": "number",
+            "neck": "number, -45 to 30"
+          },
+          "person": {
+            "x": "number",
+            "z": "number",
+            "heading": "number"
+          }
+        },
+        "steps": "non-empty array of { id: unique string of letters, digits, '-' or '_', label: German rule, why?: German reason, passages?: array of { source: source id, locator: page and heading or section heading in that source where the rule stands, in the source's language }, focus?: zone ids (kick, blind-rear, blind-front, shoulder), cue?: short German text shown at the person during the step, rope?: boolean held from this step on, duration: positive number in s, horse?: partial horse pose, person?: partial person pose }",
+        "sources": "optional object mapping an id to { label: German display name, url: https address }"
+      },
+      "semantics": [
+        "Ground plane is x-z, y is up. Positions are abstract scene units, not metres.",
+        "Heading 0 means the figure faces +x; positive heading rotates about the up axis by the right-hand rule. A figure's right-hand side is its local +z, so the horse's left side is its local -z.",
+        "neck is the rotation of the horse figure's neck segment about its pivot; negative lowers it. Supported range -45 to 30 degrees.",
+        "Each step interpolates linearly from the pose at its start to the targets it names; omitted figures or keys hold their pose.",
+        "Headings interpolate linearly between the given numbers, so the numeric difference fixes direction and amount of a turn; one step may change a heading by at most 180 degrees.",
+        "rope holds from the step that sets it until a later step changes it.",
+        "Step i covers the half-open interval [start, start + duration); the last step includes the sequence end.",
+        "Zones (app/js/figures.js ZONES) lie in the horse's frame and move and turn with it: kick sector behind the hindquarters, narrow blind-spot sectors straight ahead of the head and straight behind, and the leading position at the left shoulder. Their extents are schematic; the sources name the regions but give no distances."
+      ],
+      "deliberateCases": [
+        "Two steps without movement that point to zones only (blind-spots, kick-zone).",
+        "A step with a cue at the person (approach).",
+        "A step that starts the rope, which then holds (lead-rope).",
+        "Steps moving both figures together (lead) and turning both (turn), with the person staying at the left shoulder throughout.",
+        "A final pose that differs from the initial pose, so restart visibly resets."
+      ],
+      "placeholders": [
+        "Positions, timings and zone extents are chosen for legibility and encode no measured safety distance.",
+        "Horse and person figures are stylised from geometric primitives; head, neck, legs, ears and a noseband make them readable, and no anatomical accuracy or correct movement is implied.",
+        "The reasons paraphrase the sources in German and are not reviewed by a veterinarian or teacher."
+      ],
+      "sources": [
+        {
+          "id": "svs",
+          "title": "Pferdehaltung. Ausbildung, räumliche und technische Voraussetzungen, Pflege, Führen, Weidehaltung, Schutzausrüstung. Sicherheit (Merkblatt)",
+          "publisher": "Sozialversicherungsanstalt der Selbständigen (SVS), Wien",
+          "url": "https://www.svs.at/cdscontent/load?contentid=10008.740774&version=1606289413",
+          "retrieved": "2026-09-27",
+          "usedFor": [
+            "kick-zone",
+            "approach",
+            "stand",
+            "lead-rope",
+            "lead",
+            "turn"
+          ],
+          "licence": "Not stated; only short statements are paraphrased, no text or images are copied."
+        },
+        {
+          "id": "psu",
+          "title": "Safe Horse Handling",
+          "publisher": "Penn State Extension, The Pennsylvania State University",
+          "url": "https://extension.psu.edu/safe-horse-handling",
+          "retrieved": "2026-09-27",
+          "usedFor": [
+            "blind-spots",
+            "kick-zone",
+            "approach",
+            "stand",
+            "lead-rope",
+            "lead",
+            "turn"
+          ],
+          "licence": "Not stated for reuse; only rules are paraphrased, no text or images are copied."
+        },
+        {
+          "id": "ext",
+          "title": "Safe Ground Handling",
+          "publisher": "Extension Horses (horses.extension.org), Cooperative Extension",
+          "url": "https://horses.extension.org/safe-ground-handling/",
+          "retrieved": "2026-09-27",
+          "usedFor": [
+            "blind-spots",
+            "kick-zone",
+            "approach",
+            "lead-rope",
+            "lead",
+            "turn"
+          ],
+          "licence": "All rights reserved; only rules are paraphrased, no text or images are copied."
+        }
+      ]
+    }
+  },
+  "parameters": [
+    {
+      "id": "speed",
+      "control": "select",
+      "label": "Tempo",
+      "values": [
+        0.5,
+        1,
+        2
+      ],
+      "default": 1,
+      "effect": "Multiplier from wall-clock time to sequence time."
+    },
+    {
+      "id": "view",
+      "control": "segmented",
+      "label": "Ansicht",
+      "values": [
+        "oblique",
+        "side",
+        "top"
+      ],
+      "default": "oblique",
+      "effect": "Camera position and target, defined in app/js/scene-state.js CAMERA_VIEWS. Guided presets only, without free orbit or zoom. Changing the view keeps time, step and placement. Unavailable in the 2D fallback."
+    },
+    {
+      "id": "placement",
+      "control": "segmented",
+      "label": "Person steht",
+      "values": [
+        "sequence",
+        "shoulder",
+        "front",
+        "behind"
+      ],
+      "default": "sequence",
+      "effect": "'sequence' keeps the authored path. The others hold the person at the left shoulder, in front of or behind the horse, relative to its current pose, so the zone reading at the person can be compared. The rope and cue are then not shown, and the view widens its frame so the person held there stays in view."
+    }
+  ],
+  "geometry": "Figure parts and ground zones are defined once in app/js/figures.js: stylised figures from boxes, plain and tapered cylinders, capsules and spheres, the zones as sectors and a rectangle. app/js/three-view.js builds them as three.js primitives with an unlit ground, a fading grid, cast and contact shadows, a tube for the lead rope with the person's right arm raised towards the halter while the rope is held, a ground arrow for the person's walk, a solid ground line under the horse's head for a turn, a tube arrow ahead of its head for a straight move, and a pale horse and person where such a step began; app/js/flat-view.js draws their ground footprints. Since 2026-10-24 the horse has barrel, shoulder, croup, neck, head, ears, legs, hooves, mane and tail, still without anatomical accuracy. No model files, image textures or audio; the stripes and shadows are drawn on canvases at run time.",
+  "vendored": [
+    {
+      "name": "three",
+      "version": "0.186.1",
+      "license": "MIT",
+      "licenseFile": "app/vendor/three/LICENSE",
+      "source": "npm registry, obtained with 'npm pack three' on 2026-09-25",
+      "tarballIntegrity": "sha512-blFeqb49wRCSGUGj7gtpfnSGHy2lwDk94RhUmS1c/hTby70kvChbWpkJ4Pm1390LqzzvTmzgXKHPEafJwCb8jA==",
+      "files": {
+        "app/vendor/three/three.module.js": "sha256:9052042d676cb0fdc1ddfefe193053f34b7ac0513a616fdac4535d49987812ea",
+        "app/vendor/three/three.core.js": "sha256:9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6",
+        "app/vendor/three/LICENSE": "sha256:8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc"
+      },
+      "modified": false
+    }
+  ],
+  "videoExport": "not implemented",
+  "address": "Optional query parameters lesson (an id from data/lessons/index.json), step (step id), view (oblique, side, top) and stand (sequence, shoulder, front, behind) restore a paused scene state; renderer=2d forces the 2D view. Other values are ignored; the address selects only among the listed lessons and cannot load other data."
+}
