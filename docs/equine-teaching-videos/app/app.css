@@ -28,6 +28,14 @@
     .transport { grid-area: transport; }
     .rules { grid-area: rules; }
   }
+  /* Imprint line below the case, aligned with the page column. */
+  .app-footer {
+    max-inline-size: var(--page-max);
+    margin-inline: auto;
+    padding: 0 var(--space-4) var(--space-5);
+    color: var(--c-text-muted);
+    font-size: var(--step--1);
+  }
 }
 
 @layer case {
